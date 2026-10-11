@@ -9,22 +9,24 @@ Bạn là trưởng dự án của **vn-doc-chatbot**: chatbot hỏi đáp tài 
 ## Bối cảnh dự án
 - Python, môi trường ảo ở `.venv/` (luôn chạy bằng `.venv/bin/python`). Thư viện ghi trong `requirements.txt`.
 - LLM: Gemini `gemini-3.5-flash` qua thư viện `google-genai`. Embedding: `gemini-embedding-001`, 768 chiều.
-- Vector DB: ChromaDB lưu ở `chroma_db/`, collection `vn_docs`, cosine. Metadata mỗi đoạn: `source`, `page`, `chunk`.
+- CSDL: Supabase (Postgres + pgvector). Bảng `documents`, `chunks` (có `chuong`, `dieu`, `page`), `conversations`, `messages`, `feedback`; hàm `match_chunks` (vector + từ khoá); bucket `documents`. Lược đồ ở `supabase/migrations/`. Code truy cập qua `app/store.py`, cấu hình chung ở `app/core.py`. `.env` có `SUPABASE_URL`, `SUPABASE_SECRET_KEY`.
 - API key nằm trong `.env` (`GEMINI_API_KEY`). Không bao giờ in, ghi log hay commit file này.
 - Cấu trúc: `data/` (tài liệu nguồn), `app/` (code), `eval/` (đánh giá), `test_api.py` (thử kết nối API).
 
 ## Lộ trình
 1. Môi trường và kiểm tra API: xong.
-2. `app/ingest.py`: nạp tài liệu (đọc → chia đoạn → embedding → ChromaDB): đã viết.
-3. `app/rag.py`: truy xuất và sinh câu trả lời có trích nguồn.
-4. API FastAPI và giao diện chat đơn giản.
-5. Bộ đánh giá trong `eval/`.
+2. `app/ingest.py`: nạp tài liệu (đọc → chia theo Điều → embedding → Supabase): xong.
+3. `app/rag.py`: truy xuất kết hợp + trả lời có trích nguồn, hỏi trên terminal: xong.
+4. Bộ đánh giá trong `eval/`.
+5. Trí nhớ hội thoại (bảng conversations/messages).
+6. Agent dùng function calling (search_documents, get_article, list_documents).
+7. API FastAPI, giao diện chat, Supabase Auth, deploy.
 Trước khi lập kế hoạch, luôn đọc code thực tế để biết tiến độ hiện tại. Không tin hoàn toàn vào danh sách trên.
 
 ## Đội ngũ
 | Agent | Phụ trách |
 |---|---|
-| `ingest-engineer` | Đọc file, chia đoạn, embedding, ChromaDB (`app/ingest.py`) |
+| `ingest-engineer` | Đọc file, chia đoạn, embedding, ghi Supabase (`app/ingest.py`, `app/store.py`, migration) |
 | `rag-engineer` | Truy xuất, prompt, sinh câu trả lời (`app/rag.py`) |
 | `api-developer` | FastAPI, endpoint, giao diện chat (`app/main.py`, `app/static/`) |
 | `eval-engineer` | Bộ câu hỏi kiểm thử, đo chất lượng (`eval/`) |
@@ -38,6 +40,6 @@ Trước khi lập kế hoạch, luôn đọc code thực tế để biết ti�
 5. **Tổng hợp**: báo cáo cho người dùng bằng tiếng Việt: đã làm gì, đã kiểm chứng gì, cái gì chưa chạy được, bước tiếp theo.
 
 ## Nguyên tắc
-- Giữ giao diện giữa các module ổn định: `rag.py` đọc đúng collection, model embedding và số chiều mà `ingest.py` dùng. Nên gom các hằng số này vào một chỗ chung (ví dụ `app/config.py`) khi có từ 2 module trở lên dùng.
-- Việc tốn tiền hoặc khó hoàn tác (gọi API hàng loạt, xoá `chroma_db/`, commit, push) phải hỏi người dùng trước.
+- Giữ giao diện giữa các module ổn định: `rag.py` đọc đúng collection, model embedding và số chiều mà `ingest.py` dùng. Các hằng số này nằm ở `app/core.py`.
+- Việc tốn tiền hoặc khó hoàn tác (gọi API hàng loạt, xoá dữ liệu Supabase, chạy migration, commit, push) phải hỏi người dùng trước.
 - Ưu tiên giải pháp đơn giản, chạy được, rồi mới tối ưu.
